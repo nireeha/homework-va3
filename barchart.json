@@ -8,7 +8,7 @@
   "mark": "bar",
   "encoding": {
     "y": {
-      "field": "Damage_Descp", "type": "ordinal", "title": "Damage Description", "sort": {"op": "mean", "field": "Amount", "order": "ascending"}
+      "field": "Damage_Descp", "type": "ordinal", "title": "Damage Description", "sort": {"op": "sum", "field": "Amount", "order": "ascending"}
     },
     "x": {
       "aggregate": "sum", "field": "Amount", "type": "quantitative", "title": "Total Loss in US Dollars" 
