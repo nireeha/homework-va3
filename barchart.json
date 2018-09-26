@@ -1,7 +1,8 @@
 {
   "$schema": "https://vega.github.io/schema/vega-lite/v2.json",
   "description": "A bar chart showing crop losses in the United States due to various natural and man-made damages.",
-  "width": 500,
+  "width": 1000,
+  "height":500,
   "data": { "url": "https://raw.githubusercontent.com/nireeha/homework-va3/master/losses2015_transformed.csv"},
   "title": "Crop Losses in US",
   "mark": "bar",
@@ -10,7 +11,7 @@
       "field": "Damage_Descp", "type": "ordinal", "title": "Damage Description", "sort": {"op": "mean", "field": "Amount", "order": "ascending"}
     },
     "x": {
-      "aggregate": "mean", "field": "Amount", "type": "quantitative", "title": "Total Loss in US Dollars" 
+      "aggregate": "sum", "field": "Amount", "type": "quantitative", "title": "Total Loss in US Dollars" 
     }
   }
 }
