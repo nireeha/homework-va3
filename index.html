@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html>
+  <head>
+      <title>Bar Chart D3</title>
+      <script src="https://d3js.org/d3.v5.min.js"></script>
+      <script src="https://d3js.org/d3-scale-chromatic.v1.min.js"></script>
+      <script src="https://d3js.org/topojson.v2.min.js"></script>
+      
+      <style type="text/css">
+        body{
+          marginsbar: 0;
+        }
+
+        svg {
+          border: 1px solid rgb(206, 205, 205)
+        }
+
+        svg .myrect {
+            fill: maroon;
+            stroke-width: 0px;
+        }
+        svg .myrect:hover {
+            fill: yellow;
+        }
+
+        .all-states {
+          fill: none;
+        }
+
+        .state:hover {
+          fill: pink;
+        }
+
+        .state-border {
+          fill: none;
+          stroke: #fff;
+          stroke-linejoin: round;
+        }
+      </style>
+  </head>
+  <body>
+    <div id='Container'>
+      <div id='bar-Container'>
+        <svg id='svg-bar'></svg>
+      </div>
+      <div id='Chor-Container'>
+        <svg id='svg-chor'></svg>
+      </div>
+    </div>
+
+    <script type="text/javascript">
+      var Master_Data;
+      var bar_Data;
+      var chor_Data;
+      var marginsbar = {top: 10, right: 10, bottom: 50, left: 150};
+      var widthbar_svg = 1000
+      var heightbar_svg = 800
+      var widthbar_g = widthbar_svg - marginsbar.left - marginsbar.right;
+      var heightbar_g = heightbar_svg - marginsbar.top - marginsbar.bottom;
+      var chor_margin = {top: 10, right: 10, bottom: 40, left: 140};
+      var chor_width_svg = 950
+      var chor_height_svg = 700
+      var chor_width_g = chor_width_svg - chor_margin.left - chor_margin.right;
+      var chor_height_g = chor_height_svg - chor_margin.top - chor_margin.bottom;
+
+      function data_load()
+      {
+        d3.csv("https://raw.githubusercontent.com/Deepthiarun/Vega/master/losses2015.csv")
+          .then(function(data)
+          {
+            Master_Data = data
+            createbardata(Master_Data, null)   
+            createchordata(Master_Data, null)
+            viewmap(chor_Data)
+          }
+        );
+      }
+      
+      function createbardata(masterData, state) {
+        console.log(state + "  State Bar Chart \n")
+
+        if(state === 'all' || state === 'All' || state === null){
+          bar_Data = d3.nest()
+                      .key(function(d) { return d.Damage_Descp;})
+                      .rollup(function(d) { 
+                        return d3.sum(d, function(g) {return g.Amount; });
+                      })
+                      .entries(masterData)
+                      .sort(function(a, b){ return d3.ascending(a.values, b.values); });
+          bar_Data.sort(function (a, b) {return a.value - b.value;})
+        }else{
+          if(state < 10){
+            state = state.replace(/^0+(?!\.|$)/, '')   
+          }
+          bar_Data = d3.nest()
+                      .key(function(d) { return d.Damage_Descp;})
+                      .rollup(function(d) { 
+                        return d3.sum(d, function(g) {return g.Amount; });
+                      })
+                      .entries(masterData.filter(function(d) {return d.State_Code === state;}))
+                      .sort(function(a, b){ return d3.ascending(a.values, b.values); });
+          bar_Data.sort(function (a, b) {return a.value - b.value;})
+        }
+        
+      }
+
+      function createchordata(masterData, type) {
+          
+        if(type === null || type === 'All' || type === 'all'){
+          chor_Data = d3.nest()
+                      .key(function(d) { return d.State_Code;})
+                      .rollup(function(d) { 
+                        return d3.sum(d, function(g) {return g.Amount; });
+                      })
+                    
+                      .entries(masterData)
+                      .sort(function(a, b){ return d3.ascending(a.values, b.values); });
+          
+        }else{
+          chor_Data = d3.nest()
+                      .key(function(d) { return d.State_Code;})
+                      .rollup(function(d) { 
+                        return d3.sum(d, function(g) {return g.Amount; });
+                      })
+                      .entries(masterData.filter(function(d) {return d.Damage_Descp === type;}))
+                      
+        }
+       
+        chor_Data.filter(function(d,i) {
+         
+          
+          return null})
+      
+      }
+
+      function remove_barchart(){
+          var g_svg = d3.select("#svg_bar_g")
+          g_svg.remove()
+      }
+
+      function generate_barchart(chartData) {
+        
+        var svg = d3.select("#svg-bar")
+                    .attr("width", widthbar_svg)
+                    .attr("height", heightbar_svg)
+                    .append("g")
+                    .attr("id", "svg_bar_g")
+                    .attr("width", widthbar_g)
+                    .attr("height", heightbar_g)
+                    .attr("transform", `translate(${marginsbar.left},${marginsbar.top})`);
+
+        
+        var scale_y = d3.scaleBand()
+                              .domain(chartData.map( function(d) 
+                                { return d.key;
+                                }))
+                              .range([0, heightbar_g])
+                              .paddingInner(0.15);
+
+        var scale_x = d3.scaleLinear()
+                              .domain([0, d3.max(chartData, function(d) { return (d.value/1000000); })])
+                              .range([0, widthbar_g]);
+
+     
+        svg.append("g")
+            .attr("transform", "translate(20,0)")
+            .call(d3.axisLeft(scale_y));
+
+        svg.append("g")
+           
+            .attr("transform", "translate("+ (20) +"," + (heightbar_g) + ")")
+            .call(d3.axisBottom(scale_x));
+
+       
+        svg.selectAll("rect")
+            .data(chartData)
+            .enter()
+            .append("rect")
+            .attr("transform", "translate(20,0)")
+            .attr("x", 0)
+            .attr("y", function(d, i)
+              {
+                return scale_y(d.key)
+              })
+            .attr("height", function(d, i)
+              {
+                return scale_y.bandwidth();
+              })
+            .attr("width", function(d, i)
+              {
+              
+                return scale_x(d.value/1000000)
+              })
+            .attr("class", "myrect")
+            .on("mouseover", function(d) {
+               
+              createchordata(Master_Data,d.key)
+              viewmap(chor_Data);
+            })
+            .on("mouseout", function(d) {
+               
+              createchordata(Master_Data,null)
+              viewmap(chor_Data);
+            })
+      }
+      
+      function viewmap(chor_Data){
+        const mapWidth = 960
+        const mapHeight = 600
+
+        var svg = d3.select("#svg-chor")
+            .attr("width",mapWidth)
+            .attr("height",mapHeight);
+
+        var losses = d3.map();
+        chor_Data.map(function(d,i) { 
+          if(d.key > 10){
+          losses.set(d.key, d.value); 
+          }else{
+            losses.set(("0"+d.key).slice(-2), d.value); 
+          }})
+        var path = d3.geoPath();
+
+        var x = d3.scaleLinear()
+            .domain([11,20])
+            .rangeRound([500, 860]);
+
+        var color = d3.scaleThreshold()
+            .domain(d3.range(12, 20))
+            .range(d3.schemeBlues[9]);
+
+        var colorQ = d3.scaleQuantize()
+        .domain(1,10)
+        .range(d3.schemeBlues[9]);
+
+
+        var g = svg.append("g")
+                .attr("class", "key")
+                .attr("transform", "translate(0,40)");
+
+            g.selectAll("rect")
+            .data(color.range().map(function(d) {
+                d = color.invertExtent(d);
+                if (d[0] == null) d[0] = x.domain()[0];
+                if (d[1] == null) d[1] = x.domain()[1];
+                return d;
+                }))
+            .enter().append("rect")
+                .attr("height", 8)
+                .attr("x", function(d) { return x(d[0]); })
+                .attr("width", function(d) { return x(d[1]) - x(d[0]); })
+                .attr("fill", function(d) { return color(d[0]); });
+
+            g.append("text")
+                .attr("class", "caption")
+                .attr("x", x.range()[0])
+                .attr("y", -6)
+                .attr("fill", "#000")
+                .attr("text-anchor", "start")
+                .attr("font-weight", "bold")
+                .text("Agri Losses 2015");
+
+            g.call(d3.axisBottom(x)
+                .tickSize(13)
+                .tickFormat(function(x, i) { return i ? x : x + "M"; })
+                .tickValues(color.domain()))
+            .select(".domain")
+                .remove();
+
+
+            var promises = [d3.json("https://d3js.org/us-10m.v1.json")] 
+            Promise.all(promises).then(ready)
+            function ready([us]) {
+             
+                svg.append("path")
+                  .attr('stroke',"#000")
+                  .attr("stroke-width", 1)
+                  .attr("class", "country-border")
+                  .attr("d", path(topojson.feature(us, us.objects.nation)));
+
+                svg.append("path")
+                  .datum(topojson.mesh(us, us.objects.states, function(a, b) { return a !== b; }))
+                  .attr("class", "state-border")
+                  .attr("d", path);
+
+              var state_g = svg.append("g")
+                  state_g.selectAll("path")
+                  .data(topojson.feature(us, us.objects.states).features)
+                  .enter().append("path")
+                  .attr("class","state")
+                  .on("mouseover", function(d) {
+                      console.log("State ID: "+d.id + " Amount: "+d.amount)
+                      remove_barchart()
+                      createbardata(Master_Data, d.id);
+                      generate_barchart(bar_Data)
+                        })
+                  .on("mouseout", function(d) {
+                      remove_barchart()
+                      createbardata(Master_Data, null);
+                      generate_barchart(bar_Data)
+                  })
+                  .attr("fill", function(d) { return color((d.amount = losses.get(d.id))/10000000); })
+                  .attr("d", path)
+                  .append("title")
+                  .text(function(d) { return "State ID: "+ d.id + " Amount: " + d.amount ; });
+            }
+        }
+      
+      window.onload = data_load;
+  </script>
+  </body>
+</html>
